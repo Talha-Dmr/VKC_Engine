@@ -32,6 +32,12 @@ typedef struct App {
     VkDebugUtilsMessengerEXT debugMessenger;
     VkPhysicalDevice physicalDevice;
 } App;
+typedef struct QueueFamilyIndices {
+    u32 graphicsFamily;
+    bool isGraphicsFamilySet;
+}   QueueFamilyIndices;
+
+
 
 void initWindow(App* pApp);
 void initVulkan(App* pApp);
@@ -64,6 +70,8 @@ void setupDebugMessenger(App* pApp);
 void pickPhysicalDevice(App* pApp);
 
 u32 rateDeviceSuitability(VkPhysicalDevice device);
+
+QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
 
 int main(void) {
     App app = { 0 };
@@ -271,7 +279,39 @@ u32 rateDeviceSuitability(VkPhysicalDevice device) {
         score = 0;
     }
 
+    QueueFamilyIndices indices = findQueueFamilies(device);
+    if (!indices.isGraphicsFamilySet ) {
+        printf("Queue family not supported\n");
+        score = 0;
+    }
+
     return score;
+}
+
+QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) {
+    QueueFamilyIndices indices = { 0 };
+
+    u32 queueFamilyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, NULL);
+
+    VkQueueFamilyProperties* queueFamilyProperties =
+        (VkQueueFamilyProperties*)malloc(queueFamilyCount * sizeof(VkQueueFamilyProperties));
+    if (!queueFamilyProperties) {
+        printf("Failed to allocate queue family properties!\n");
+        return indices;
+    }
+
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilyProperties);
+
+    for (u32 i = 0; i < queueFamilyCount; i++) {
+        if (queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+            indices.graphicsFamily = i;
+            indices.isGraphicsFamilySet = true;
+        }
+    }
+
+    free(queueFamilyProperties);
+    return indices;
 }
 
 bool isDeviceSuitable(VkPhysicalDevice device) {
